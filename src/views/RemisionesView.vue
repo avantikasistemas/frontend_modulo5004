@@ -1,6 +1,6 @@
 <template>
   <LayoutView>
-    <h3>Consultar Remisiones</h3>
+    <h3>Consultar Remisiones y Facturas</h3>
 
     <div class="container">
         <div class="form-container">
