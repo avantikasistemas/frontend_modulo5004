@@ -16,6 +16,17 @@
     <div class="form-container" v-if="data_response.length > 0">
         <div class="table-container">
             <h3 class="h3-title">REGISTROS</h3>
+            <hr>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; gap: 0.5rem;">
+                    <h5>Valor del pedido con IVA:</h5>{{ data_extra.valor_total }}
+                </div>
+                <button class="btn-excel" @click="exportarExcel">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#217346" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><rect x="3" y="3" width="18" height="18" rx="2" fill="#fff" stroke="#217346"/><path d="M8 8l8 8M16 8l-8 8" stroke="#217346"/><rect x="6" y="6" width="12" height="12" rx="1" fill="#d6f5e3" stroke="#217346"/></svg>
+                    Exportar Excel
+                </button>
+            </div>
+            <hr>
             <table>
                 <thead>
                     <tr>
@@ -121,6 +132,7 @@ const modalTitle = ref("");
 const errorMsg = ref("");
 
 const data_response = ref([]);
+const data_extra = ref({});
 
 const loading = ref(false);
 const loading_msg = ref('');
@@ -146,11 +158,58 @@ const cargarRegistros = async () => {
         );
 
         if (response.status === 200) {
-            data_response.value = response.data.data;
+            data_response.value = response.data.data.pedido;
+            data_extra.value = response.data.data.valores_extras;
         }
     } catch (error) {
         console.error("Error al consultar los datos:", error);
         errorMsg.value = error.response?.data?.message || "Error al consultar los datos.";
+        modalErrorInstance.value.show();
+    } finally {
+        loading.value = false;
+        loading_msg.value = "";
+    }
+};
+
+// ✅ Función para exportar a Excel
+const exportarExcel = async () => {
+    try {
+        if (data_response.value.length === 0) {
+            errorMsg.value = "No hay datos para exportar.";
+            modalErrorInstance.value.show();
+            return;
+        }
+
+        loading.value = true;
+        loading_msg.value = "Generando archivo Excel, por favor espera...";
+
+        const response = await axios.post(
+            `${apiUrl}/exportar_remision_factura_excel`, 
+        {
+            registros: data_response.value
+        },
+        {
+            headers: {
+                Accept: "application/json"
+            },
+            responseType: 'blob' // Importante para manejar archivos binarios
+        }
+        );
+
+        if (response.status === 200) {
+            // Crear un enlace para descargar el archivo
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `remision_factura_${num_pedido.value}.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url); // Liberar memoria
+        }
+    } catch (error) {
+        console.error("Error al exportar los datos:", error);
+        errorMsg.value = error.response?.data?.message || "Error al exportar los datos.";
         modalErrorInstance.value.show();
     } finally {
         loading.value = false;
@@ -305,6 +364,27 @@ th {
   transform: scale(1.2) rotate(-10deg);
   background: none;
   box-shadow: none;
+}
+
+.btn-excel {
+    background-color: #d6f5e3;
+    color: #217346;
+    border: 1px solid #217346;
+    border-radius: 5px;
+    padding: 8px 18px 8px 14px;
+    font-size: 1em;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border 0.2s;
+    box-shadow: 0 2px 6px rgba(33,115,70,0.08);
+}
+.btn-excel:hover {
+    background-color: #b6e6c9;
+    color: #145c2c;
+    border-color: #145c2c;
 }
 
 /* Reducir el tamaño de los select dentro de la tabla */
