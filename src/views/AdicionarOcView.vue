@@ -6,11 +6,15 @@
         <div class="form-container">
             <form @submit.prevent="ejecutarAdicion" class="form-flex">
                 <div class="form-group">
-                    <input type="number" class="input-field" v-model="num_pedido" placeholder="Número de pedido"/>
-                    <input type="number" class="input-field" v-model="nuevo_pedido" placeholder="Nuevo número de pedido"/>
+                    <input type="number" class="input-field" v-model="num_pedido" placeholder="Número de pedido" @blur="consultarTercero('num_pedido')"/>
+                    <input type="number" class="input-field" v-model="nuevo_pedido" placeholder="Nuevo número de pedido" @blur="consultarTercero('nuevo_pedido')"/>
                     <button type="submit" class="submit-button">Adicionar</button>
                 </div>
             </form>
+        </div>
+        <div class="form-container" v-if="nombreTercero.num_pedido || nombreTercero.nuevo_pedido">
+            <div v-if="nombreTercero.num_pedido" class="tercero-label">{{ nombreTercero.num_pedido }}</div>
+            <div v-if="nombreTercero.nuevo_pedido" class="tercero-label">{{ nombreTercero.nuevo_pedido }}</div>
         </div>
     </div>
 
@@ -88,6 +92,35 @@ const data_response = ref(null);
 
 const loading = ref(false);
 const loading_msg = ref('');
+
+const nombreTercero = ref({ num_pedido: '', nuevo_pedido: '' });
+
+const consultarTercero = async (campo) => {
+    let valor = campo === 'num_pedido' ? num_pedido.value : nuevo_pedido.value;
+    if (!valor) {
+        nombreTercero.value[campo] = '';
+        return;
+    }
+    try {
+        const response = await axios.post(`${apiUrl}/consultar_tercero_pedido`, 
+            { 
+                numero_pedido: parseInt(valor) 
+            }, 
+            { 
+                headers: 
+                    { 
+                        Accept: "application/json" 
+                    } 
+            });
+        if (response.status === 200) {
+            nombreTercero.value[campo] = `${response.data.data.nombres} - ${response.data.data.nit}`;
+        } else {
+            nombreTercero.value[campo] = '';
+        }
+    } catch (error) {
+        nombreTercero.value[campo] = '';
+    }
+}
 
 // ✅ Función para cargar la información
 const ejecutarAdicion = async () => {
@@ -275,47 +308,11 @@ th {
   box-shadow: none;
 }
 
-/* Reducir el tamaño de los select dentro de la tabla */
-.table-container table select {
-    width: 80px; /* Ajusta el ancho */
-    padding: 4px; /* Reduce el padding interno */
-    font-size: 0.875rem; /* Hace el texto un poco más pequeño */
-}
-
-.table-container table input {
-    width: 150px; /* Ajusta el ancho */
-    padding: 4px; /* Reduce el padding interno */
-    font-size: 0.875rem; /* Hace el texto un poco más pequeño */
-}
-
-/* Ajustar el tamaño del textarea dentro de la tabla */
-.table-container table textarea {
-    width: 100%; /* Ocupar todo el ancho de la celda */
-    min-width: 200px; /* Asegurar un tamaño mínimo */
-    height: 50px; /* Un poco más alto */
-    resize: vertical; /* Permitir que el usuario lo ajuste en altura */
-    font-size: 0.875rem;
-}
-
-.no-registros {
-    text-align: center;
-    font-weight: bold;
-    color: #888;
-    padding: 16px;
-    font-size: 1rem;
-}
-
-.update-button {
-    background-color: #679b3a;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    padding: 10px 20px;
-    cursor: pointer;
-    transition: background 0.3s;
-}
-.update-button:hover {
-    background-color: #487223;
+.tercero-label {
+    font-size: 0.95em;
+    color: #2c01ba;
+    margin-bottom: 6px;
+    margin-left: 2px;
 }
 
 @media (max-width: 768px) {
@@ -329,18 +326,7 @@ th {
     }
 } 
 
-.row-3-cols {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    margin-bottom: 12px;
-}
-.row-3-cols .col {
-    flex: 1 1 calc(33.333% - 16px);
-    min-width: 220px;
-    box-sizing: border-box;
-    margin-bottom: 8px;
-}
+
 /* Overlay de carga */
 .loading-overlay {
     position: fixed;
